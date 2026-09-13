@@ -145,11 +145,25 @@ macro(add_theme color theme dpi)
                                                    ${CMAKE_CURRENT_SOURCE_DIR}/index.theme
                                                    ${CMAKE_BINARY_DIR}/oxy-${theme}/index.theme
                       )
+    set(package_staging_dir ${CMAKE_BINARY_DIR}/package-staging/oxy-${theme})
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/packages/oxy-${theme}.tar.bz2
-                       DEPENDS ${${theme}_cursors} ${CMAKE_BINARY_DIR}/oxy-${theme}/index.theme
+                       DEPENDS ${${theme}_cursors} ${CMAKE_BINARY_DIR}/oxy-${theme}/index.theme ${MAKE_POINTER_THEME}
+                       COMMAND ${CMAKE_COMMAND} -E rm -rf ${package_staging_dir}
+                       COMMAND ${CMAKE_COMMAND} -E make_directory ${package_staging_dir}/oxy-${theme}
+                       COMMAND ${CMAKE_COMMAND} -E copy_directory
+                                                 ${CMAKE_BINARY_DIR}/oxy-${theme}/cursors
+                                                 ${package_staging_dir}/oxy-${theme}/cursors
+                       COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                                                 ${CMAKE_BINARY_DIR}/oxy-${theme}/index.theme
+                                                 ${package_staging_dir}/oxy-${theme}/index.theme
+                       COMMAND ${CMAKE_COMMAND} -E make_directory ${package_staging_dir}/default
+                       COMMAND ${CMAKE_COMMAND} -Doutput=${package_staging_dir}/default/index.theme
+                                                -Dinherits=oxy-${theme}
+                                                -P ${MAKE_POINTER_THEME}
                        COMMAND ${TAR} cjf ${CMAKE_BINARY_DIR}/packages/oxy-${theme}.tar.bz2
-                                      oxy-${theme}/cursors
-                                      oxy-${theme}/index.theme
+                                      -C ${package_staging_dir}
+                                      oxy-${theme}
+                                      default
                        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
                       )
     add_custom_target(package-${theme} DEPENDS ${CMAKE_BINARY_DIR}/packages/oxy-${theme}.tar.bz2)
