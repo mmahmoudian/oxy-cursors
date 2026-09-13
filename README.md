@@ -8,6 +8,14 @@ To build this project you need the following software installed:
 - [xcursorgen](https://repology.org/project/xcursorgen/versions) (compiles the PNG frames into Xcursor files)
 - [tar](https://repology.org/project/tar/versions) (used to package the generated themes into .tar.bz2 archives)
 
+## How to use this repo
+
+1. Clone the repo
+2. Build using the instructions in "How to build" section
+3. From `build/thumbnails/` pick the cursor theme you like
+4. Use the instructions in `How to package the cursor theme` to package the cursor theme into appropriate file. The file will be in `build/packages/`.
+5. Follow the instructions in `How to install the cursors` section to install it, or use your own DE settings window.
+
 ## How to build
 
 How to generate all the pngs and the SVGs and the cursor files:
@@ -39,6 +47,7 @@ The build system is still young, with rough edges (e.g. doesn't check if convert
 
 All of what you see here is to be considered a work in progress, and therefore must be considered as unreleased.
 
+# How to package the cursor theme
 
 Running `make` (or `cmake --build .`) produces a `.tar.bz2` archive for each requested theme under `build/packages/`. Each archive contains both the theme directory (`oxy-<color>/...`) and a pointer theme file at `default/index.theme` that inherits from that theme. Running `make theme-<color>` (or `cmake --build . --target theme-<color>`) instead just generates the theme's files (PNGs, SVGs, cursors) directly under `build/oxy-<color>/`, without packaging them into an archive.
 
