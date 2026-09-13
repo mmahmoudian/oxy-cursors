@@ -1,11 +1,14 @@
 find_program(TAR tar)
 # TODO abort if tar not found (or does not understand cjf?)
 
-find_program(INKSCAPE inkscape)
-# TODO abort if inkscape not found
-
 find_program(XCURSORGEN xcursorgen)
 # TODO abort if xcursorgen not found
+
+find_program(MAGICK magick)
+# TODO abort if magick not found
+
+set(CONVERT ${MAGICK} convert)
+set(MONTAGE ${MAGICK} montage)
 
 macro(set_dependencies cursor)
     file(READ ${CONFIGDIR}/${cursor}.in config_contents)

@@ -8,9 +8,10 @@ macro(add_cursor cursor color theme dpi)
                       )
     add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/oxy-${theme}/png/${cursor}.png
                        DEPENDS ${CMAKE_BINARY_DIR}/oxy-${theme}/svg/${cursor}.svg
-                       COMMAND ${INKSCAPE} --without-gui --export-dpi=${dpi}
-                                           --export-png=${CMAKE_BINARY_DIR}/oxy-${theme}/png/${cursor}.png
-                                           ${CMAKE_BINARY_DIR}/oxy-${theme}/svg/${cursor}.svg
+                       COMMAND ${CONVERT} -background none
+                                          -density ${dpi}
+                                          ${CMAKE_BINARY_DIR}/oxy-${theme}/svg/${cursor}.svg
+                                          ${CMAKE_BINARY_DIR}/oxy-${theme}/png/${cursor}.png
                       )
 endmacro(add_cursor)
 
@@ -34,7 +35,94 @@ macro(add_x_cursor theme cursor dpi)
                       )
 endmacro(add_x_cursor)
 
+set(THUMBNAIL_CURSORS
+    left_ptr
+    hand
+    xterm
+    help
+    fleur
+    grab_open
+    cross
+    link
+    forbidden
+    up_arrow
+    size_diag-tl2br
+    split_h
+   )
+set(THUMBNAIL_TILE_SIZE 128)
+set(THUMBNAIL_TILE_PADDED 144)
+set(THUMBNAIL_TILE_MARGIN 12)
+set(THUMBNAIL_COLUMNS 6)
+set(THUMBNAIL_ROWS 2)
+set(THUMBNAIL_TITLE_HEIGHT 100)
+set(THUMBNAIL_BACKGROUND "gray17")
+set(THUMBNAIL_FONT "DejaVu-Sans-Bold")
+
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/packages)
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/thumbnails)
+macro(add_thumbnail color theme dpi)
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-svg)
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-png)
+    file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-tile)
+    set(${theme}_thumb_tiles)
+    foreach(cursor ${THUMBNAIL_CURSORS})
+        add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-svg/${cursor}.svg
+                           DEPENDS ${MAKE_SVG} ${CMAKE_CURRENT_SOURCE_DIR}/colors.in ${SVGDIR}/${cursor}.svg
+                           COMMAND ${CMAKE_COMMAND} -Dconfig=${CMAKE_CURRENT_SOURCE_DIR}/colors.in
+                                                    -Dinput=${SVGDIR}/${cursor}.svg
+                                                    -Doutput=${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-svg/${cursor}.svg
+                                                    -P ${MAKE_SVG}
+                          )
+        add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-png/${cursor}.png
+                           DEPENDS ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-svg/${cursor}.svg
+                           COMMAND ${CONVERT} -background none
+                                              -density ${dpi}
+                                              ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-svg/${cursor}.svg
+                                              ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-png/${cursor}.png
+                          )
+        add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-tile/${cursor}.png
+                           DEPENDS ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-png/${cursor}.png
+                           COMMAND ${CONVERT} ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-png/${cursor}.png
+                                              -background none -gravity center
+                                              -resize ${THUMBNAIL_TILE_SIZE}x${THUMBNAIL_TILE_SIZE}
+                                              -extent ${THUMBNAIL_TILE_PADDED}x${THUMBNAIL_TILE_PADDED}
+                                              ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-tile/${cursor}.png
+                          )
+        list(APPEND ${theme}_thumb_tiles ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-tile/${cursor}.png)
+    endforeach(cursor)
+
+    math(EXPR thumbnail_width "${THUMBNAIL_COLUMNS} * ${THUMBNAIL_TILE_PADDED}")
+
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-title.png
+                       DEPENDS ${${theme}_thumb_tiles}
+                       COMMAND ${CONVERT} -size ${thumbnail_width}x${THUMBNAIL_TITLE_HEIGHT}
+                                          xc:${THUMBNAIL_BACKGROUND}
+                                          -gravity center -fill white -pointsize 36
+                                          -font ${THUMBNAIL_FONT}
+                                          -annotate 0 "Oxy Cursors - ${theme} theme"
+                                          ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-title.png
+                      )
+
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-collage.png
+                       DEPENDS ${${theme}_thumb_tiles}
+                       COMMAND ${MONTAGE} ${${theme}_thumb_tiles}
+                                          -tile ${THUMBNAIL_COLUMNS}x${THUMBNAIL_ROWS}
+                                          -geometry ${THUMBNAIL_TILE_PADDED}x${THUMBNAIL_TILE_PADDED}+${THUMBNAIL_TILE_MARGIN}+${THUMBNAIL_TILE_MARGIN}
+                                          -background ${THUMBNAIL_BACKGROUND}
+                                          ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-collage.png
+                      )
+
+    add_custom_command(OUTPUT ${CMAKE_BINARY_DIR}/thumbnails/oxy-${theme}.png
+                       DEPENDS ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-title.png
+                               ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-collage.png
+                       COMMAND ${CONVERT} ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-title.png
+                                          ${CMAKE_BINARY_DIR}/oxy-${theme}/thumb-collage.png
+                                          -background ${THUMBNAIL_BACKGROUND} -append
+                                          ${CMAKE_BINARY_DIR}/thumbnails/oxy-${theme}.png
+                      )
+    add_custom_target(thumbnail-${theme} ALL DEPENDS ${CMAKE_BINARY_DIR}/thumbnails/oxy-${theme}.png)
+endmacro(add_thumbnail)
+
 macro(add_theme color theme dpi)
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/oxy-${theme}/png)
     file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/oxy-${theme}/svg)
